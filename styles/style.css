@@ -25,7 +25,32 @@ h1 {
 
 p, li {
     color: #6b6868;
-    line-height: 1.5;
+    line-height: 1.75;
     text-align: right;
     margin: auto;
+}
+
+a:link.home, a:visited.home {
+    color: #413B3B;
+    text-decoration: none;
+}
+
+a:hover.home {
+    color: #FAFAFA;
+    background: #413B3B;
+}
+
+a:link.link, a:visited.link {
+    color: #6b6868;
+}
+
+a:hover.link {
+    color: #FAFAFA;
+    background: #6b6868;
+}
+
+.center {
+    display: block;
+    margin-left: auto;
+    margin-right: auto;
 }
