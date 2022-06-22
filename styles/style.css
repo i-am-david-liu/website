@@ -1,5 +1,5 @@
 html {
-    font-size: 18px;
+    font-size: 16px;
     font-family: "Inter";
     background-color: #FAFAFA;
 }
@@ -16,7 +16,7 @@ h1 {
     font-size: 70px;
     font-family: "Merriweather", sans-serif;
     letter-spacing: 1px;
-    text-align: right;
+    /* text-align: right; */
     color: #413B3B;
     margin: auto;
     margin-top: 10px;
@@ -24,6 +24,12 @@ h1 {
 }
 
 p, li {
+    color: #6b6868;
+    line-height: 1.75;
+    margin: auto;
+}
+
+p.right {
     color: #6b6868;
     line-height: 1.75;
     text-align: right;
