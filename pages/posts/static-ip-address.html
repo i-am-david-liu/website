@@ -1,0 +1,34 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="utf-8">
+    <link href="../styles/style.css" rel="stylesheet">
+  </head>
+  <body>
+    <h3 id="settingupastaticipaddress">Setting up a static IP address</h3>
+    <ul>
+    <li>This is especially useful if you need to connect remotely. Most devices dynamically set a new IP after a reboot</li>
+    <li>Modify <code>/etc/dhcpcd.conf</code>, which is the DHCP client daemon. See References for more details<ul>
+    <li>In short, we need the following information:<ol>
+    <li>The network, which is <code>eth0</code> or <code>wlan0</code></li>
+    <li>The static IP, which we can get from <code>hostname -I</code></li>
+    <li>The router's gateway IP address from <code>ip r | grep default</code></li>
+    <li>The router's DNS IP address from <code>sudo vim /etc/resolv.conf</code>. The DNS address is usually the same as the gateway</li></ol></li></ul></li>
+    <li>Add these lines to <code>dhcpcd.conf</code>:</li>
+    </ul>
+    <pre><code>interface &lt;network&gt;
+    static ip_address=&lt;static ip&gt;/24
+    static routers=&lt;router ip&gt;
+    static domain_name_servers=&lt;dns ip&gt;
+    </code></pre>
+    <ul>
+    <li>1: <code>192.168.1.26</code> and 2: <code>192.168.1.27</code> are what we're using</li>
+    <li>3: <code>192.168.1.28</code> (the RPi model B+ named "pi")<ul>
+    <li>or <code>128.113.122.188</code> on ethernet with rpi_wpa2</li></ul></li>
+    </ul>
+    <h3 id="references">References</h3>
+    <ul>
+    <li>https://www.makeuseof.com/raspberry-pi-set-static-ip/</li>
+    </ul>
+  </body>
+</html>
