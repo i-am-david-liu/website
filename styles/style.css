@@ -3,46 +3,45 @@
 @import url('https://fonts.googleapis.com/css2?family=Inter&display=swap');
 
 html {
-    font-size: 16px;
     font-family: "Inter";
+    font-size: 1.2em;
+    max-width: 70ch;
+    padding: 3em 1em;
+    margin: auto;
+    line-height: 1.75;
     background-color: #FAFAFA;
 }
 
+/*
 body {
     width: 600px;
     margin: auto;
     margin-top: 20px;
     background-color: #FAFAFA;
     padding: 10px 40px 180px 40px;
-}
+}*/
 
 h1 {
     font-size: 70px;
     font-family: "Merriweather", sans-serif;
-    letter-spacing: 1px;
-    /* text-align: right; */
     color: #413B3B;
     margin: auto;
-    margin-top: 10px;
     padding: 30px 0px 25px 0px;
 }
 
 h3 {
     font-family: "Merriweather", sans-serif;
-    letter-spacing: 1px;
     color: #413B3B;
     padding: 10px 0px 0px 0px;
 }
 
 p, li {
     color: #6b6868;
-    line-height: 1.75;
     margin: 0 0 10px 0;
 }
 
 p.right {
     color: #6b6868;
-    line-height: 1.75;
     text-align: right;
     margin: auto;
 }
