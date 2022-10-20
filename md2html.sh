@@ -14,7 +14,9 @@ cat << EOF > $out
 <html>
   <head>
     <meta charset="utf-8">
-    <link href="../../styles/style.css" rel="stylesheet">
+    <meta name="viewport" content="width=device-width">
+
+    <link href="../styles/style.css" rel="stylesheet">
   </head>
   <body>
 EOF
