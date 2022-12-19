@@ -12,15 +12,6 @@ html {
     background-color: #FAFAFA;
 }
 
-/*
-body {
-    width: 600px;
-    margin: auto;
-    margin-top: 20px;
-    background-color: #FAFAFA;
-    padding: 10px 40px 180px 40px;
-}*/
-
 h1 {
     font-size: 70px;
     font-family: "Merriweather", sans-serif;
@@ -74,5 +65,3 @@ img {
     margin-left: auto;
     margin-right: auto;
 }
-
-
