@@ -51,6 +51,15 @@ li:before {
     padding-right: 1ch;
 }
 
+a:link, a:visited {
+    color: #6b6868;
+}
+
+a:hover {
+    color: #FAFAFA;
+    background: #6b6868;
+}
+
 a:link.home, a:visited.home {
     color: #413B3B;
     text-decoration: none;
@@ -61,6 +70,7 @@ a:hover.home {
     background: #413B3B;
 }
 
+/* FIX LATER */
 a:link.link, a:visited.link {
     color: #6b6868;
 }
@@ -69,6 +79,7 @@ a:hover.link {
     color: #FAFAFA;
     background: #6b6868;
 }
+/**/
 
 img {
     padding: 20px 0px;
