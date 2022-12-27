@@ -1,5 +1,5 @@
 
-@import url('https://fonts.googleapis.com/css2?family=Merriweather:ital,wght@1,900&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Merriweather:wght@700&display=swap');
 @import url('https://fonts.googleapis.com/css2?family=Inter&display=swap');
 
 html {
@@ -12,38 +12,43 @@ html {
     background-color: #FAFAFA;
 }
 
-/*
-body {
-    width: 600px;
-    margin: auto;
-    margin-top: 20px;
-    background-color: #FAFAFA;
-    padding: 10px 40px 180px 40px;
-}*/
+h1,
+h3 {
+    font-family: "Merriweather";
+    color: #413B3B;
+    margin-bottom: 12px;
+}
 
 h1 {
-    font-size: 70px;
-    font-family: "Merriweather", sans-serif;
-    color: #413B3B;
-    margin: auto;
-    padding: 30px 0px 25px 0px;
+    font-size: 50px;
 }
 
-h3 {
-    font-family: "Merriweather", sans-serif;
-    color: #413B3B;
-    padding: 10px 0px 0px 0px;
+hr {
+    margin-bottom: 20px;
 }
 
-p, li {
+p,
+p.right,
+li {
     color: #6b6868;
-    margin: 0 0 10px 0;
 }
 
 p.right {
-    color: #6b6868;
     text-align: right;
     margin: auto;
+}
+
+ul {
+    list-style: none;
+    margin-top: -10px;
+    margin-left: 0;
+    padding-left: 2ch;
+    text-indent: -1ch;
+}
+
+li:before {
+    content: "–";
+    padding-right: 1ch;
 }
 
 a:link.home, a:visited.home {
@@ -74,5 +79,3 @@ img {
     margin-left: auto;
     margin-right: auto;
 }
-
-
