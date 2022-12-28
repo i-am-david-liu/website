@@ -16,13 +16,16 @@ cat << EOF > $out
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width">
 
-    <link href="../styles/style.css" rel="stylesheet">
+    <link href="/styles/style.css" rel="stylesheet">
   </head>
   <body>
 EOF
 showdown makehtml -a -i $in -o $out
 cat << EOF >> $out
-
+    <hr>
+    <p class="center">
+      <a href="/posts">back</a>
+    </p>
   </body>
 </html>
 EOF
