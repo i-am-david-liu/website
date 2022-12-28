@@ -12,38 +12,58 @@ html {
     background-color: #FAFAFA;
 }
 
+/* HEADERS */
 h1,
 h3 {
     font-family: "Merriweather";
     color: #413B3B;
-    margin-bottom: 12px;
 }
 
 h1 {
     font-size: 50px;
+    margin-bottom: 12px;
+}
+
+h3 {
+    margin-bottom: -10px;
 }
 
 hr {
     margin-bottom: 20px;
 }
 
+/* PARAGRAPHS */
 p,
-p.right,
-li {
+p.center,
+p.right
+{
     color: #6b6868;
+}
+
+/* convert center and right to general classes? */
+p.center {
+    text-align: center;
 }
 
 p.right {
     text-align: right;
-    margin: auto;
+}
+
+.date {
+    margin-right: 10px;
+    color: #9e9999;
 }
 
 ul {
     list-style: none;
-    margin-top: -10px;
+    margin-top: -15px;
     margin-left: 0;
     padding-left: 2ch;
     text-indent: -1ch;
+}
+
+li {
+    color: #6b6868;
 }
 
 li:before {
@@ -51,6 +71,7 @@ li:before {
     padding-right: 1ch;
 }
 
+/* LINKS */
 a:link, a:visited {
     color: #6b6868;
 }
@@ -60,9 +81,10 @@ a:hover {
     background: #6b6868;
 }
 
+/* MAIN PAGE LINK */
 a:link.home, a:visited.home {
     color: #413B3B;
-    text-decoration: none;
+    text-decoration: none; /* removes underline */
 }
 
 a:hover.home {
@@ -70,23 +92,8 @@ a:hover.home {
     background: #413B3B;
 }
 
-/* FIX LATER */
-a:link.link, a:visited.link {
-    color: #6b6868;
-}
-
-a:hover.link {
-    color: #FAFAFA;
-    background: #6b6868;
-}
-/**/
-
 img {
-    padding: 20px 0px;
-}
-
-.center {
     display: block;
-    margin-left: auto;
-    margin-right: auto;
+    max-width: 100%;
+    margin: 20px auto;
 }
