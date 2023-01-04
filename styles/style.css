@@ -1,6 +1,7 @@
 
 @import url('https://fonts.googleapis.com/css2?family=Merriweather:wght@700&display=swap');
 @import url('https://fonts.googleapis.com/css2?family=Inter&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@300&display=swap');
 
 html {
     font-family: "Inter";
@@ -51,8 +52,9 @@ p.right {
 }
 
 .date {
+    font-family: "IBM Plex Mono";
     margin-right: 10px;
-    color: #9e9999;
+    color: #a39e9e;
 }
 
 ul {
