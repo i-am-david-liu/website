@@ -17,6 +17,9 @@ cat << EOF > $out
     <meta name="viewport" content="width=device-width">
 
     <link href="/styles/style.css" rel="stylesheet">
+    <link rel="icon" type="image/x-icon" href="/favicon.svg">
+
+    <title>dliu.xyz</title>
   </head>
   <body>
 EOF
