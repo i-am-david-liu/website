@@ -37,7 +37,8 @@ hr {
 /* PARAGRAPHS */
 p,
 p.center,
-p.right
+p.right,
+blockquote
 {
     color: #6b6868;
 }
@@ -72,6 +73,10 @@ li {
 li:before {
     content: "–";
     padding-right: 1ch;
+}
+
+blockquote {
+    font-style: italic;
 }
 
 /* LINKS */
