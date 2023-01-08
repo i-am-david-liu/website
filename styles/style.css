@@ -58,22 +58,29 @@ p.right {
     color: #a39e9e;
 }
 
-ul {
-    list-style: none;
-    margin-top: -15px;
-    margin-left: 0;
+ul,
+ol
+{
+    /*list-style: none;*/
+
+    /*margin-left: 0;*/
+    /*
     padding-left: 2ch;
     text-indent: -1ch;
+    */
 }
 
 li {
     color: #6b6868;
+    margin-bottom: 5px;
 }
 
+/*
 li:before {
     content: "–";
     padding-right: 1ch;
 }
+*/
 
 blockquote {
     font-style: italic;
