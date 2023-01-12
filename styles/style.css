@@ -41,6 +41,7 @@ p.right,
 blockquote
 {
     color: #6b6868;
+    text-align: justify;
 }
 
 /* convert center and right to general classes? */
@@ -58,29 +59,11 @@ p.right {
     color: #a39e9e;
 }
 
-ul,
-ol
-{
-    /*list-style: none;*/
-
-    /*margin-left: 0;*/
-    /*
-    padding-left: 2ch;
-    text-indent: -1ch;
-    */
-}
-
 li {
     color: #6b6868;
     margin-bottom: 5px;
+    text-align: justify;
 }
-
-/*
-li:before {
-    content: "–";
-    padding-right: 1ch;
-}
-*/
 
 blockquote {
     font-style: italic;
