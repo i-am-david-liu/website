@@ -13,6 +13,14 @@ html {
     background-color: #FAFAFA;
 }
 
+.right {
+    float: right;
+}
+
+.left {
+    float: left;
+}
+
 /* HEADERS */
 h1,
 h3 {
@@ -52,12 +60,17 @@ p.center {
 p.right {
     text-align: right;
 }
-
-.date {
+.mono,
+.date
+{
     font-family: "IBM Plex Mono";
-    margin-right: 10px;
     color: #a39e9e;
 }
+
+.date {
+    margin-right: 10px;
+}
+
 
 li {
     color: #6b6868;
