@@ -28,7 +28,7 @@ cat << EOF > $out
     <hr>
     <p>
       <span class="left mono"></span>
-      <span class="right mono"$wordcount words</span>
+      <span class="right mono">$wordcount words</span>
     </p>
     <div style="clear: both;"></div>
 EOF
