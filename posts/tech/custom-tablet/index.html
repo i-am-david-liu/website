@@ -1,0 +1,504 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width">
+
+    <link href="/styles/style.css" rel="stylesheet">
+    <link rel="icon" type="image/x-icon" href="/favicon.svg">
+
+    <script src="https://polyfill.io/v3/polyfill.min.js?features=es6"></script>
+    <script id="MathJax-script" async
+            src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js">
+    </script>
+
+    <title>dliu.xyz - Customizing my tablet via command line</title>
+  </head>
+  <body>
+    <h1>Customizing my tablet<br>via command line</h1>
+    <hr>
+    <p>
+      <span class="left mono">07/30/23</span>
+      <span class="right mono">2348 words</span>
+    </p>
+    <div style="clear: both;"></div>
+
+    <p>I own a <a href="https://www.huion.com/pen_tablet/Inspiroy/H640P.html">Huion Inspiroy H640P</a>. Unfortunately, the driver doesn't have great support on Arch Linux, so I wondered if there was a way to change the settings programmatically.</p>
+    <p>The three things I wanted to customize:</p>
+    <ol>
+      <li>Invert the tablet display (I'm left-handed, so I want the buttons to be on the right, not the left).</li>
+      <li>Restrict the tablet to one monitor. I use two monitors, and the default setting is to map the tablet across both, doubling the horizontal sensitivity.</li>
+      <li>The tablet has six buttons on the side, and I want to map them to useful commands (e.g. moving a page up or down.)</li>
+    </ol>
+    <p>After a bit of web browsing, I managed to cobble up a solution in a Bash script. This post will go through what I did.</p>
+
+    <h1 id="probingthetablet">Probing the tablet</h1>
+    <hr>
+    <p>Because I'm running the <a href="https://xorg.freedesktop.org/wiki/">X Window System</a>, I can use the <a href="https://wiki.archlinux.org/title/Xinput"><code>xinput</code></a> utility to gather info on my devices. If we execute <code>xinput list</code> on the command line, we should get something like:</p>
+
+    <div class="code-block">
+      <pre><code>$ xinput list
+⎡ Virtual core pointer                          id=2    [master pointer  (3)]
+⎜   ...
+⎜   ↳ HUION Huion Tablet_H640P Pad              id=13   [slave  pointer  (2)]
+⎜   ↳ HUION Huion Tablet_H640P Pen Pen (0)      id=22   [slave  pointer  (2)]
+⎜   ...
+⎣ Virtual core keyboard                         id=3    [master keyboard (2)]
+    ...
+    ↳ HUION Huion Tablet_H640P Pen              id=11   [slave  keyboard (3)]
+    ↳ HUION Huion Tablet_H640P Keyboard         id=13   [slave  keyboard (3)]
+    ...</code></pre>
+    </div>
+
+    <p>The "..." means I removed irrelevant output. What's left are all the input devices associated with the Huion tablet, but figuring out the exact function of the listed devices from name alone isn't that intuitive. Let's poke into <code>HUION Huion Tablet_H640P Pad</code> by calling <code>xinput list-props 13</code>, where <code>13</code> is the id of the device:</p>
+
+    <div class="code-block">
+      <pre><code>$ xinput list-props 13
+Device 'HUION Huion Tablet_H640P Pad':
+        Device Enabled (153):   1
+        Coordinate Transformation Matrix (155): 1.000000, 0.000000, 0.000000, 0.000000, 1.000000, 0.000000, 0.000000, 0.000000, 1.000000
+        libinput Left Handed Enabled (303):     0
+        libinput Left Handed Enabled Default (304):     0
+        libinput Send Events Modes Available (266):     1, 0
+        libinput Send Events Mode Enabled (267):        0, 0
+        libinput Send Events Mode Enabled Default (268):        0, 0
+        Device Node (269):      "/dev/input/event5"
+        Device Product ID (270):        9580, 109</code></pre>
+    </div>
+
+    <p>Okay, there's some useful information here. We know the device is enabled and there are some <code>libinput</code> settings currently set to false (0). In fact, there's a property specifically for left-handed use, so I set that property to true via <code>xinput set-prop 13 303 1</code>, where 303 is the id of the property. But that didn't do anything.</p>
+    <p>What's most interesting to me, though, is the property named <code>Coordinate Transformation Matrix</code>. What seems to be a list of nine floats is actually the <strong><a href="https://en.wikipedia.org/wiki/Identity_matrix">identity matrix</a></strong> in disguise once we arrange it in a 3x3 grid. This is a typical representation for anything related to computer graphics, and it also gave me a clue on how I could customize the tablet's display: I needed to use <strong><a href="https://en.wikipedia.org/wiki/Affine_transformation">affine transformations</a></strong>.</p>
+    <p>To stay on topic, I won't go too deep into matrices or transformations, so there may be some intuitive gaps in my explanations.</p>
+
+    <h1>Reorienting the tablet</h1>
+    <hr>
+    <p>In the previous section, I mentioned how the Coordinate Transformation Matrix was actually the <strong>identity matrix</strong> in disguise:
+      \[
+      [1.000000\quad 0.000000\ \cdots\ 0.000000\quad 1.000000]\rightarrow
+      \begin{bmatrix}
+        1 & 0 & 0 \\
+        0 & 1 & 0 \\
+        0 & 0 & 1
+      \end{bmatrix}
+      \]
+      We can think of the identity matrix as the "<em>default state</em>" for the tablet -&gt; screen mapping. The reason why we represent the screen as a matrix is to afford a convenience: by <strong>multiplying</strong> this matrix with other matrices, we can change the orientation of the screen rather easily.
+
+    <h3>Affine transformations</h3>
+    <p>Okay, so we have something called an "identity matrix" that represents the default mapping. What can we do with it?</p>
+    <p>Let's start with a motivating example. Imagine we hook up a tablet to a single monitor, but the tablet's vertical input is upside down:</p>
+    <picture>
+      <source srcset="images/inverted_example.avif" type="image/avif">
+      <img src="images/inverted_example.jpg">
+    </picture>
+    <p>If we point our stylus at the bottom left of the tablet's drawing area, the cursor would display in the top left of the screen instead. To fix this, we first need to flip the tablet across the x-axis. Assuming we have a Coordinate Transformation Matrix to work with, we can multiply the identity matrix by:</p>
+    <div style="color: #6b6868; text-align: center;">
+      <div style="display: inline-block">
+        <div>
+        \[
+        \begin{bmatrix}
+          1 & 0 & 0 \\
+          0 & -1 & 0 \\
+          0 & 0 & 1
+        \end{bmatrix}
+        \]
+        </div>
+        <div><em>Flip over x-axis</em></div>
+      </div>
+      <div style="display: inline-block">
+        <div>
+        \[
+        \begin{bmatrix}
+          1 & 0 & 0 \\
+          0 & 1 & 0 \\
+          0 & 0 & 1
+        \end{bmatrix}
+        \]
+        </div>
+        <div><em>Identity</em></div>
+      </div>
+      <div style="display: inline-block">
+        <div>
+        \[
+        = \begin{bmatrix}
+          1 & 0 & 0 \\
+          0 & -1 & 0 \\
+          0 & 0 & 1
+        \end{bmatrix}
+        \]
+        </div>
+        <div>&nbsp;</div>
+      </div>
+    </div>
+    <p>For those unfamiliar, the intuition behind the "flip" matrix is to turn all the y-coordinates in the default state <em>negative</em>, thus "flipping" it over the x-axis. Here's <a href="https://en.wikipedia.org/wiki/Affine_transformation#Image_transformation">a whole list</a> of affine transformations and their corresponding matrices; I'll be pulling from this chart later on.</p>
+    <p>Another thing: we need to order the transformations from <em>right</em> to <em>left</em>, starting from the most recent transformation to the last. This will be useful to keep in mind while we work with more complex transformations.</p>
+    <p>Now the screen should be oriented correctly, but because we flipped over an axis, the tablet's drawing area is actually out of bounds. If we picture the tablet itself on a grid, this notion becomes a little more clear:</p>
+    <picture>
+      <source srcset="images/inverted_flip.avif" type="image/avif">
+      <img src="images/inverted_flip.jpg">
+    </picture>
+    <p>I put a little red marker to demonstrate how the tablet's orientation changed after the flip, but see how the screen lies <em>outside</em> the tablet's drawing area after the transformation? To solve this problem, we can perform a <em>translation</em> and move the transformed screen up 1. Visually, this looks like:</p>
+    <picture>
+      <source srcset="images/inverted_flip_move.avif" type="image/avif">
+      <img src="images/inverted_flip_move.jpg">
+    </picture>
+    <p>Mathematically:</p>
+    <div style="color: #6b6868; text-align: center;">
+      <div style="display: inline-block">
+        <div>
+        \[
+        \begin{bmatrix}
+          1 & 0 & 0 \\
+          0 & 1 & 1 \\
+          0 & 0 & 1
+        \end{bmatrix}
+        \]
+        </div>
+        <div><em>Move up 1</em></div>
+      </div>
+      <div style="display: inline-block">
+        <div>
+        \[
+        \begin{bmatrix}
+          1 & 0 & 0 \\
+          0 & -1 & 0 \\
+          0 & 0 & 1
+        \end{bmatrix}
+        \]
+        </div>
+        <div><em>Flip over x-axis</em></div>
+      </div>
+      <div style="display: inline-block">
+        <div>
+        \[
+        \begin{bmatrix}
+          1 & 0 & 0 \\
+          0 & 1 & 0 \\
+          0 & 0 & 1
+        \end{bmatrix}
+        \]
+        </div>
+        <div><em>Identity</em></div>
+      </div>
+      <div style="display: inline-block">
+        <div>
+        \[
+        = \begin{bmatrix}
+          1 & 0 & 0 \\
+          0 & -1 & 1 \\
+          0 & 0 & 1
+        \end{bmatrix}
+        \]
+        </div>
+        <div>&nbsp;</div>
+      </div>
+    </div>
+    <p>In matrix algebra, the identity matrix can be thought as a \(1\); in other words, multiplying a matrix \(A\) by an identity matrix gives \(A\). So if we toss out the identity from the previous equation, it gives us the same answer:</p>
+    <div style="color: #6b6868; text-align: center;">
+      <div style="display: inline-block">
+        <div>
+        \[
+        \begin{bmatrix}
+          1 & 0 & 0 \\
+          0 & 1 & 1 \\
+          0 & 0 & 1
+        \end{bmatrix}
+        \]
+        </div>
+        <div><em>Move up 1</em></div>
+      </div>
+      <div style="display: inline-block">
+        <div>
+        \[
+        \begin{bmatrix}
+          1 & 0 & 0 \\
+          0 & -1 & 0 \\
+          0 & 0 & 1
+        \end{bmatrix}
+        \]
+        </div>
+        <div><em>Flip over x-axis</em></div>
+      </div>
+      <div style="display: inline-block">
+        <div>
+        \[
+        = \begin{bmatrix}
+          1 & 0 & 0 \\
+          0 & -1 & 1 \\
+          0 & 0 & 1
+        \end{bmatrix}
+        \]
+        </div>
+        <div>&nbsp;</div>
+      </div>
+    </div>
+    <p>If we set that matrix as our new Coordinate Transformation Matrix, it should correctly orient the tablet -&gt; screen mapping.</p>
+
+    <h3 id="puttingitalltogether">Putting it all together</h3>
+    <p>Let's take a look at the Coordinate Transformation Matrix again:
+      \[
+      \begin{bmatrix}
+        1 & 0 & 0 \\
+        0 & 1 & 0 \\
+        0 & 0 & 1
+      \end{bmatrix}
+      \]
+    This matrix represents the tablet -&gt; monitor mapping, and it's currently the identity matrix because we haven't made any changes yet (the default state). In my case, the tablet maps its drawing area over two monitors like this:</p>
+
+    <picture>
+      <source srcset="images/default_tablet_state.avif" type="image/avif">
+      <img src="images/default_tablet_state.jpg">
+    </picture>
+    <p>But the goal is to have something like this:</p>
+    <picture>
+      <source srcset="images/goal_tablet_state.avif" type="image/avif">
+      <img src="images/goal_tablet_state.jpg">
+    </picture>
+
+    <p>Contrary to the previous example, the origin is actually located in the bottom-right corner. This is because the origin's default position was in the top-left (a <a href="https://gamedev.stackexchange.com/questions/83570/why-is-the-origin-in-computer-graphics-coordinates-at-the-top-left">computer graphics standard with an interesting history</a>), and then I rotated the tablet 180 degrees to move the buttons onto the right side. Here's a picture with the true axes:</p>
+
+    <picture>
+      <source srcset="images/axes_example.avif" type="image/avif">
+      <img src="images/axes_example.jpg">
+    </picture>
+
+    <p>I'll be visualizing the transformations on a graph, so don't worry if the change in coordinates feel confusing.</p>
+    <p>With that, we can start customizing. To keep things concise, here's how we can fix the mapping with three transformations:</p>
+
+    <picture>
+      <source srcset="images/transform.avif" type="image/avif">
+      <img src="images/transform.jpg">
+    </picture>
+
+    <p>We know that each transformation <a href="https://en.wikipedia.org/wiki/Affine_transformation#Image_transformation">has a corresponding matrix</a> and we can combine transformations by multiplying them from most recent to last. Then, our equation looks like this:</p>
+
+    <div style="color: #6b6868; text-align: center;">
+      <div style="display: inline-block">
+        <div>
+        \[
+        \begin{bmatrix}
+          0.5 & 0 & 0 \\
+          0 & 1 & 0 \\
+          0 & 0 & 1
+        \end{bmatrix}
+        \]
+        </div>
+        <div><em>Scale</em></div>
+      </div>
+      <div style="display: inline-block">
+        <div>
+        \[
+        \begin{bmatrix}
+          -1 & 0 & 0 \\
+          0 & -1 & 0 \\
+          0 & 0 & 1
+        \end{bmatrix}
+        \]
+        </div>
+        <div><em>Flip</em></div>
+      </div>
+      <div style="display: inline-block">
+        <div>
+        \[
+        \begin{bmatrix}
+          1 & 0 & -1 \\
+          0 & 1 & -1 \\
+          0 & 0 & 1
+        \end{bmatrix}
+        \]
+        </div>
+        <div><em>Move</em></div>
+      </div>
+      <div style="display: inline-block">
+        <div>
+        \[
+        \begin{bmatrix}
+          1 & 0 & 0 \\
+          0 & 1 & 0 \\
+          0 & 0 & 1
+        \end{bmatrix}
+        \]
+        </div>
+        <div><em>Identity</em></div>
+      </div>
+      <div style="display: inline-block">
+        <div>
+        \[
+        = 
+        \begin{bmatrix}
+          -0.5 & 0 & 0.5 \\
+          0 & -1 & 1 \\
+          0 & 0 & 1
+        \end{bmatrix}
+        \]
+        </div>
+        <div>&nbsp;</div>
+      </div>
+    </div>
+
+    <p>That matrix is our new Coordinate Transformation Matrix. Let's look at our device list again:</p>
+
+    <div class="code-block">
+    <pre><code>$ xinput list
+⎡ Virtual core pointer                          id=2    [master pointer  (3)]
+⎜   ...
+⎜   ↳ HUION Huion Tablet_H640P Pad              id=13   [slave  pointer  (2)]
+⎜   ↳ HUION Huion Tablet_H640P Pen Pen (0)      id=22   [slave  pointer  (2)]
+⎜   ...
+⎣ Virtual core keyboard                         id=3    [master keyboard (2)]
+    ...
+    ↳ HUION Huion Tablet_H640P Pen              id=11   [slave  keyboard (3)]
+    ↳ HUION Huion Tablet_H640P Keyboard         id=13   [slave  keyboard (3)]
+    ...</code></pre>
+    </div>
+
+    <p>We can set properties via <code>xinput set-prop</code>, but here we need to modify the tablet <em>pen</em> device (id=22), not the tablet pad (id=13). I don't know the exact reasons why, but after testing this empirically, it's the one that worked.</p>
+    <p>To set our new matrix, we enter the command: <code>xinput set-prop 22 --type=float "Coordinate Transformation Matrix" -0.5 0 0.5 0 -1 1 0 0 1</code>. This should correctly re-orient the tablet.</p>
+
+    <h1 id="customizingbuttons">Customizing buttons</h1>
+    <hr>
+    <p>After figuring out how to customize the tablet -&gt; screen mapping, I wanted to go a step further and customize the tablet buttons, too. The Inspiroy H640P has 6 buttons on the side:</p>
+    <p><img src="https://static.tildacdn.com/tild3038-3732-4430-b232-373835666137/5.png" alt="" /></p>
+    <p>We can access the button mapping with <code>xinput get-button-map 13</code>, where <code>13</code> is the id of the <strong>tablet pad</strong>:</p>
+    <div class="code-block">
+    <pre><code>$ xinput get-button-map 13
+1 2 3 4 5 6 7 8 9 10</code></pre>
+    </div>
+    <p>This tells us that there are 10 button inputs mapped to the tablet, with each button corresponding to a key id (1, 2, 3...) that represents <em>what the button does</em>. However, we don't know which button corresponds to what key id! We can figure this out using <code>xinput test</code>.</p>
+    <p><code>xinput test</code> executes an interactive program that receives an input signal (a button press) and outputs information about that signal. So if we call <code>xinput test 13</code> and press a few tablet buttons, our output would be something like:
+
+    <div class="code-block">
+    <pre><code>$ xinput test 13
+button press   10
+button release 10
+button press   9
+button release 9
+button press   8
+button release 8
+... # etc.</code></pre>
+    </div>
+
+    <p>This gives us a direct method of assigning key id's to all the buttons. In this case, we have the mapping:</p>
+
+    <picture>
+      <source srcset="images/tablet_buttons.avif" type="image/avif">
+      <img src="images/tablet_buttons.jpg">
+    </picture>
+
+    <p>Now we need to figure out how to <em>change</em> them.</p>
+
+    <h3>Modifying the button map</h3>
+
+    <p>I like using my tablet for web-browsing, so my idea was to set the top two buttons (10 and 9) to be "page forward" and "page back", respectively. But "page forward/back" is already modeled as mouse buttons, so is there a way to probe what the id of those mouse buttons are and assign it to the tablet?</p>
+    <p>From the <a href=https://wiki.archlinux.org/title/Mouse_buttons>Arch wiki page on mouse buttons</a>, we can use <a href=https://man.archlinux.org/man/xev.1><code>xev</code></a> to check signals from the mouse:
+
+    <div class="code-block">
+    <pre><code>$ xev -event button | grep button
+state 0x10, button 9, same_screen YES   # page forward 
+state 0x10, button 9, same_screen YES
+state 0x10, button 8, same_screen YES   # page back 
+state 0x10, button 8, same_screen YES
+... # etc.</code></pre>
+    </div>
+
+    <p><code>xev</code> functions similarly to <code>xinput test</code>, in that both commands execute a program which reads and displays information about events. The previous code revealed that "page forward" has button id 9, while "page back" has button id 8. Interestingly enough, our tablet already assigned those id's by default, but not in a location I wanted.</p>
+    <p>To change this, we use <code>xinput</code> again but with the <code>set-button-map</code> argument:</p>
+
+    <div class="code-block">
+    <pre><code>$ xinput set-button-map 13 1 2 3 4 5 6 7 8 8 9</code></pre>
+    </div>
+
+    <p>Don't be fooled by the long chain of numbers: there are only two arguments here. The first is the id of the tablet pad (13), and everything afterward is the button map we extracted from the previous section through <code>get-button-map</code>. This time, we performed a <em>re-map</em> and changed button 9 -&gt; 8 and button 10 -&gt; 9. I left the rest of the buttons as-is. Now, the top two buttons will send an event corresponding to those new id's and execute page forward/back accordingly.</p>
+
+
+    <h3>Keyboard macros</h3>
+    <p>The next thing I wanted to do was set buttons 8 and 3 to be PgUp/PgDn. This is tricky, because the tablet buttons read <strong>mouse button inputs</strong>, not keyboard inputs. As far as I know, there isn't a mouse button that corresponds to PgUp/PgDn; the closest thing we have is the scroll wheel, and that doesn't scroll far enough, especially when our button would only scroll once for every press!</p>
+    <p>One solution would be to define a <em>custom mouse button id</em> and hook it up to a keyboard automation utility called <code>xdotool</code>. In other words, we can use macros to make a mouse button <em>act</em> like a keyboard button.</p>
+    <p>To emulate a keyboard key using <code>xdotool</code>, we can simply type <code>xdotool key [key]</code>. So if we want to signal the letter "p", we do <code>xdotool key p</code>.</p>
+    <p>By using <a href=https://gitlab.com/cunidev/gestures/-/wikis/xdotool-list-of-key-codes>this list of key codes</a>, we know how to call PgUp/PgDn:
+
+    <div class="code-block">
+    <pre><code class="default">xdotool key Page_Up
+xdotool key Page_Down</code></pre>
+    </div>
+
+    <p>There's also a utility called <a href=https://wiki.archlinux.org/title/Xbindkeys><code>xbindkeys</code></a> which <em>binds</em> an input (keyboard or mouse) to a command. The idea here is to use <code>xbindkeys</code> and bind custom mouse buttons to the <code>xdotool</code> commands in the previous code block, then map our tablet buttons to those custom mouse buttons. By the transitive property, our tablet will then be able to emulate keyboard inputs.</p>
+    <p>First, we create an empty file called <code>.xbindkeysrc</code> in our home directory. Within the file, we include the following lines:</p>
+
+    <div class="code-block">
+    <pre><code>"xdotool key PgUp"
+    b:100
+
+"xdotool key PgDown"
+    b:101</code></pre>
+    </div>
+
+    <p>The lines in quotes are our key commands, while <code>b:100</code> and <code>b:101</code> represent mouse button id's. I set them to 100 and 101 because default button id's don't go that high, so I'm assured they won't overwrite any existing functionality.</p>
+
+    <p>Once we save <code>.xbindkeysrc</code>, we can either call <code>xbindkeys</code> directly from the command line or place it in our window manager's config file to make the changes permanent.</p>
+
+    <p>Regardless, the final step is to change tablet buttons 8 and 3 to our custom-defined buttons. All we need to do here is edit the button map again:</p>
+
+    <div class="code-block">
+    <pre><code>$ xinput set-button-map 13 1 2 101 4 5 6 7 100 8 9</code></pre>
+    </div>
+
+    <p>To prevent confusion, I also disabled all the other buttons by setting them to 99, which has no event attached:</p>
+
+    <div class="code-block">
+    <pre><code>$ xinput set-button-map 13 99 99 101 99 99 99 99 100 8 9</code></pre>
+    </div>
+
+    <p>And we're finished.</p>
+
+    <h1 id="conclusion">Conclusion</h1> 
+    <hr>
+
+    <p>Here's a summary of what we did:</p>
+    <ol>
+      <li>Used <code>xinput</code> to get and set properties on the tablet</li>
+      <li>Reoriented the tablet's drawing area using affine transformations</li>
+      <li>Used <code>xdotool</code> and <code>xbindkeys</code> to modify our tablet buttons</li>
+    </ol>
+
+    <p>It's easy to wrap our commands inside a Bash function and call it whenever the tablet is plugged in. For example, here's what I currently use:</p>
+
+    <div class="code-block">
+    <pre><code># put this in ~/.bashrc
+
+tablet-setup() {
+    # device id's may change, so dynamically extract and assign to variable
+    pen_id=$(xinput | grep -oP 'H640P Pen Pen.*id=\K\w+')
+    pad_id=$(xinput | grep -oP 'H640P Pad.*id=\K\w+')
+
+    echo 'pen id='$pen_id
+    echo 'pad id='$pad_id
+
+    # reorient tablet 
+    xinput set-prop $pen_id --type=float "Coordinate Transformation Matrix" -0.5 0 0.5 0 -1 1 0 0 1
+
+    # rebind buttons
+    xinput set-button-map $pad_id 99 99 101 99 99 99 99 100 8 9 
+}
+</code></pre>
+    </div>
+
+    <p>And don't forget the <code>xbindkeysrc</code> config file:</p>
+
+    <div class="code-block">
+    <pre><code># put this in ~/.xbindkeysrc
+
+"xdotool key PgUp"
+    b:100
+
+"xdotool key PgDown"
+    b:101</code></pre>
+    </div>
+
+    <p>My next challenge is figuring out how to automate this, but I'll save that problem for later.</p>
+    </br>
+    <hr>
+    <p class="center">
+      <a href="/tech">back</a>
+    </p>
+  </body>
+</html>

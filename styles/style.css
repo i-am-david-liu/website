@@ -108,3 +108,21 @@ img {
     max-width: 100%;
     margin: 20px auto;
 }
+
+p > code,
+a > code,
+li > code {
+    color: #6b6868;
+    background-color: #e4edfe;
+    padding: 2px;
+}
+
+.code-block {
+    border: 2px solid #383636;
+    color: #fafafa;
+    background-color: #6b6868;
+    overflow-x: auto; /* add horizontal scroll bar */
+    padding: 10px;
+    width: 90%;
+    margin: 20px auto;
+}
